@@ -1,27 +1,23 @@
 {
-  "name": "Everything Is Fine",
-  "short_name": "Fine",
-  "description": "A big red button for when you just need a moment.",
-  "start_url": "index.html",
+  "name": "MoodGarden",
+  "short_name": "MoodGarden",
+  "description": "A privacy-first mood garden that grows with your emotions.",
+  "start_url": ".",
   "display": "standalone",
-  "background_color": "#121214",
-  "theme_color": "#121214",
-  "orientation": "portrait",
+  "background_color": "#f4f0ea",
+  "theme_color": "#f4f0ea",
   "icons": [
     {
-      "src": "https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/72x72/1f534.png",
-      "sizes": 72,
-      "type": "image/png"
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/128x128/1f534.png",
-      "sizes": 128,
-      "type": "image/png"
-    },
-    {
-      "src": "https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/512x512/1f534.png",
-      "sizes": 512,
-      "type": "image/png"
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
