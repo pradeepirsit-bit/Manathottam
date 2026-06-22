@@ -1,363 +1,1078 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bike Roar Rater - TFJS On-Device</title>
-    
-    <!-- Load TensorFlow.js -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
-    <!-- Load Teachable Machine Audio Extension (Handles complex FFT/Spectrogram math automatically) -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/speech-commands@0.4.0/dist/speech-commands.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+  <title>🌿 MoodGarden</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#f4f0ea" />
+  <meta name="description" content="A privacy-first mood garden that grows with your emotions." />
+  
+  <!-- Soothing Calm Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 
-    <style>
-        :root {
-            --primary: #ff4500;
-            --secondary: #222;
-            --bg: #0a0a0a;
-            --text: #ffffff;
-            --accent: #00ff7f;
-        }
+  <style>
+    /* ---------- Reset & Base (Soothingly Calm) ---------- */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-            text-align: center;
-        }
+    body {
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f4f0ea;
+      background-image: radial-gradient(circle at 20% 30%, #fcf9f4 0%, #f0ebe3 100%);
+      min-height: 100vh;
+      padding: 20px 16px 100px;
+      color: #4d4d4d;
+      font-weight: 400;
+      line-height: 1.5;
+    }
 
-        .container {
-            background-color: var(--secondary);
-            padding: 2.5rem;
-            border-radius: 20px;
-            box-shadow: 0 15px 40px rgba(255, 69, 0, 0.15);
-            width: 90%;
-            max-width: 450px;
-            position: relative;
-            overflow: hidden;
-        }
+    /* ---------- App Container ---------- */
+    .app {
+      max-width: 480px;
+      margin: 0 auto;
+      background: rgba(255, 252, 248, 0.70);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-radius: 48px;
+      box-shadow: 0 25px 60px -12px rgba(140, 120, 100, 0.15);
+      padding: 28px 22px 32px;
+      border: 1px solid rgba(255, 248, 240, 0.5);
+      transition: all 0.2s ease;
+    }
 
-        /* Top highlight bar */
-        .container::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 5px;
-            background: linear-gradient(90deg, var(--primary), var(--accent));
-        }
+    /* ---------- Header ---------- */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding: 0 4px;
+    }
 
-        h1 { margin-top: 0; color: var(--primary); text-transform: uppercase; letter-spacing: 2px; }
-        p { color: #aaaaaa; font-size: 0.95rem; margin-bottom: 25px; }
+    .header h1 {
+      font-size: 26px;
+      font-weight: 600;
+      color: #6d846d;
+      letter-spacing: -0.3px;
+      background: none;
+      -webkit-text-fill-color: #6d846d;
+    }
 
-        #record-btn {
-            background: linear-gradient(145deg, #ff5722, #e63e00);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 90px; height: 90px;
-            font-size: 32px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 8px 20px rgba(255, 69, 0, 0.4);
-            margin: 10px auto 25px auto;
-            display: flex; align-items: center; justify-content: center;
-        }
+    .header .date {
+      font-size: 13px;
+      color: #8f8a82;
+      background: rgba(160, 140, 125, 0.12);
+      padding: 5px 16px;
+      border-radius: 40px;
+      font-weight: 500;
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
 
-        #record-btn:active { transform: scale(0.9); }
-        
-        #record-btn.recording {
-            background: #dc143c;
-            animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
-        }
+    /* ---------- Garden Grid ---------- */
+    .garden {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin: 18px 0 28px;
+    }
 
-        @keyframes pulse-ring {
-            0% { box-shadow: 0 0 0 0 rgba(220, 20, 60, 0.7); }
-            70% { box-shadow: 0 0 0 25px rgba(220, 20, 60, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(220, 20, 60, 0); }
-        }
+    .plant-card {
+      background: #ffffff;
+      border-radius: 28px;
+      padding: 16px 6px 12px;
+      text-align: center;
+      box-shadow: 0 8px 24px rgba(160, 140, 130, 0.06);
+      border: 1px solid rgba(255, 248, 245, 0.8);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .plant-card:active {
+      transform: scale(0.96);
+      box-shadow: 0 2px 8px rgba(160, 140, 130, 0.04);
+    }
 
-        /* Progress Bar for the 5s capture */
-        .progress-container { width: 100%; height: 6px; background: #333; border-radius: 3px; margin-bottom: 15px; display: none; overflow: hidden; }
-        .progress-bar { height: 100%; width: 0%; background: var(--primary); transition: width 0.1s linear; }
+    .plant-emoji {
+      font-size: 44px;
+      line-height: 1.2;
+      margin-bottom: 4px;
+      display: block;
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .plant-emoji.bloom {
+      animation: float 4s ease-in-out infinite;
+    }
 
-        .results { display: none; animation: slideUp 0.5s ease-out forwards; border-top: 1px solid #333; padding-top: 20px; }
-        
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) scale(1); }
+      50% { transform: translateY(-8px) scale(1.02); }
+    }
 
-        .score-box { background: rgba(0,0,0,0.4); padding: 15px; border-radius: 12px; margin-bottom: 15px; }
-        .score-display { font-size: 4rem; font-weight: 900; color: var(--accent); margin: 0; line-height: 1; text-shadow: 0 0 15px rgba(0,255,127,0.3); }
-        .bonus-text { font-size: 0.8rem; color: #ffeb3b; margin-top: 5px; }
+    .plant-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: #6a7a6a;
+      letter-spacing: 0.4px;
+      text-transform: capitalize;
+    }
 
-        .bike-badge {
-            display: inline-block; padding: 6px 12px; border-radius: 6px;
-            background: #333; font-weight: bold; font-size: 1.1rem; margin: 10px 0;
-            border-left: 4px solid var(--primary);
-        }
+    .plant-stage {
+      font-size: 10px;
+      color: #949e89;
+      background: rgba(109, 132, 109, 0.08);
+      padding: 2px 12px;
+      border-radius: 30px;
+      display: inline-block;
+      margin-top: 4px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
 
-        .trash-talk {
-            font-size: 1.1rem; font-style: italic; background: rgba(255,255,255,0.05);
-            padding: 15px; border-radius: 8px; margin-top: 10px; border: 1px solid #444;
-        }
+    .plant-progress {
+      margin-top: 10px;
+      height: 4px;
+      background: #f0ebe5;
+      border-radius: 10px;
+      overflow: hidden;
+    }
 
-        #status { color: #888; font-size: 0.9rem; font-weight: 500; height: 20px; }
-    </style>
+    .plant-progress-bar {
+      height: 100%;
+      border-radius: 10px;
+      background: linear-gradient(90deg, #c9dcc9, #8aa78a);
+      transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+      width: 0%;
+    }
+
+    /* ---------- Action Row ---------- */
+    .action-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 4px;
+    }
+
+    .log-button, .voice-button {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 16px 0;
+      border: none;
+      border-radius: 60px;
+      font-size: 16px;
+      font-weight: 600;
+      font-family: 'Nunito', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+      touch-action: manipulation;
+      letter-spacing: 0.2px;
+    }
+
+    .log-button {
+      background: #8aa78a;
+      color: #ffffff;
+      box-shadow: 0 8px 24px rgba(138, 167, 138, 0.25);
+    }
+    .log-button:active {
+      transform: scale(0.96);
+      box-shadow: 0 4px 12px rgba(138, 167, 138, 0.15);
+    }
+
+    .voice-button {
+      background: #f4efe8;
+      color: #6d846d;
+      border: 1px solid #e5ddd3;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    }
+    .voice-button:active {
+      transform: scale(0.96);
+      background: #ede6dd;
+    }
+
+    .voice-button.recording {
+      background: #dbb8b0;
+      color: #ffffff;
+      border-color: #dbb8b0;
+      box-shadow: 0 8px 24px rgba(190, 140, 130, 0.25);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(0.98); }
+    }
+
+    /* ---------- Journal ---------- */
+    .journal-section {
+      margin-top: 32px;
+      border-top: 1px solid rgba(160, 140, 125, 0.10);
+      padding-top: 24px;
+    }
+
+    .journal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .journal-header h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #6d846d;
+      letter-spacing: 0.3px;
+    }
+
+    .journal-header .count {
+      font-size: 12px;
+      color: #8f8a82;
+      background: rgba(160, 140, 125, 0.10);
+      padding: 3px 14px;
+      border-radius: 30px;
+      font-weight: 600;
+    }
+
+    .journal-list {
+      max-height: 280px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-right: 4px;
+    }
+
+    .journal-list::-webkit-scrollbar {
+      width: 4px;
+    }
+    .journal-list::-webkit-scrollbar-track {
+      background: rgba(160, 140, 125, 0.05);
+      border-radius: 10px;
+    }
+    .journal-list::-webkit-scrollbar-thumb {
+      background: #d6ccc2;
+      border-radius: 10px;
+    }
+
+    .journal-entry {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 14px 18px;
+      border: 1px solid rgba(255, 248, 245, 0.9);
+      box-shadow: 0 2px 12px rgba(160, 140, 130, 0.04);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      animation: slideIn 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .entry-emoji {
+      font-size: 26px;
+      flex-shrink: 0;
+      width: 42px;
+      text-align: center;
+    }
+
+    .entry-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .entry-mood {
+      font-weight: 600;
+      font-size: 14px;
+      color: #4a5a4a;
+    }
+
+    .entry-note {
+      font-size: 13px;
+      color: #7a8a7a;
+      margin-top: 1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-weight: 400;
+    }
+
+    .entry-time {
+      font-size: 10px;
+      color: #a89f96;
+      flex-shrink: 0;
+      margin-left: auto;
+      padding-left: 8px;
+      font-weight: 500;
+    }
+
+    .empty-journal {
+      text-align: center;
+      color: #b0a89e;
+      font-size: 14px;
+      padding: 24px 0;
+      font-weight: 400;
+      background: rgba(255, 252, 248, 0.3);
+      border-radius: 40px;
+      border: 1px dashed #d6ccc2;
+    }
+
+    /* ---------- Privacy Row ---------- */
+    .privacy-row {
+      display: flex;
+      justify-content: flex-end;
+      gap: 16px;
+      margin-top: 20px;
+      padding: 0 4px;
+    }
+    .privacy-row button {
+      background: transparent;
+      border: none;
+      color: #a89f96;
+      font-size: 12px;
+      font-weight: 500;
+      font-family: 'Nunito', sans-serif;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      text-decoration-color: rgba(160, 140, 125, 0.2);
+      cursor: pointer;
+      padding: 4px 6px;
+      transition: color 0.2s;
+    }
+    .privacy-row button:active {
+      color: #6d846d;
+    }
+
+    /* ---------- Modal (Soothing Overlay) ---------- */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(60, 55, 50, 0.25);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0s 0.3s;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 0.3s ease, visibility 0s 0s;
+    }
+
+    .modal-sheet {
+      background: #fcf9f5;
+      border-radius: 40px 40px 0 0;
+      width: 100%;
+      max-width: 480px;
+      padding: 28px 24px 36px;
+      transform: translateY(100%);
+      transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+      box-shadow: 0 -20px 60px rgba(80, 70, 60, 0.06);
+      border-top: 1px solid rgba(255, 248, 240, 0.6);
+    }
+
+    .modal-overlay.active .modal-sheet {
+      transform: translateY(0);
+    }
+
+    .modal-handle {
+      width: 36px;
+      height: 4px;
+      background: #d6ccc2;
+      border-radius: 10px;
+      margin: 0 auto 18px;
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #5a6a5a;
+      text-align: center;
+      margin-bottom: 4px;
+      letter-spacing: -0.2px;
+    }
+
+    .modal-sub {
+      text-align: center;
+      color: #8f8a82;
+      font-size: 14px;
+      margin-bottom: 24px;
+      font-weight: 400;
+    }
+
+    /* Mood Grid - Soft Pastels */
+    .mood-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .mood-option {
+      background: #ffffff;
+      border: 2px solid transparent;
+      border-radius: 32px;
+      padding: 16px 6px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+      touch-action: manipulation;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    }
+    .mood-option:active {
+      transform: scale(0.94);
+    }
+
+    /* Individual Pastel Mood Colors */
+    .mood-option[data-mood="joy"] { background: #fdf0e6; }
+    .mood-option[data-mood="calm"] { background: #e8f0e8; }
+    .mood-option[data-mood="sadness"] { background: #e6ecf2; }
+    .mood-option[data-mood="anger"] { background: #f5e8e6; }
+    .mood-option[data-mood="anxiety"] { background: #eeebf5; }
+    .mood-option[data-mood="excitement"] { background: #faf3e0; }
+
+    .mood-option.selected {
+      border-color: #8aa78a;
+      background: #ffffff;
+      box-shadow: 0 8px 24px rgba(138, 167, 138, 0.15);
+      transform: scale(1.02);
+    }
+
+    .mood-option .emoji {
+      font-size: 34px;
+      display: block;
+      margin-bottom: 4px;
+      line-height: 1.2;
+    }
+
+    .mood-option .label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #4d5a4d;
+      letter-spacing: 0.2px;
+    }
+
+    /* Voice Result Banner */
+    .voice-result {
+      background: rgba(138, 167, 138, 0.08);
+      border-radius: 40px;
+      padding: 12px 18px;
+      margin-bottom: 18px;
+      text-align: center;
+      font-size: 15px;
+      color: #5a6a5a;
+      border: 1px solid rgba(138, 167, 138, 0.10);
+      backdrop-filter: blur(4px);
+    }
+    .voice-result strong {
+      font-weight: 600;
+      color: #6d846d;
+    }
+
+    /* Note Input */
+    .note-input {
+      width: 100%;
+      padding: 14px 20px;
+      border: 1px solid #e5ddd3;
+      border-radius: 60px;
+      font-size: 15px;
+      background: #ffffff;
+      backdrop-filter: blur(4px);
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      color: #3d4a3d;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 400;
+      margin-bottom: 18px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    }
+    .note-input:focus {
+      border-color: #8aa78a;
+      box-shadow: 0 4px 16px rgba(138, 167, 138, 0.08);
+    }
+
+    /* Modal Actions */
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+    }
+    .modal-actions button {
+      flex: 1;
+      padding: 14px 0;
+      border: none;
+      border-radius: 60px;
+      font-size: 16px;
+      font-weight: 600;
+      font-family: 'Nunito', sans-serif;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      touch-action: manipulation;
+      letter-spacing: 0.2px;
+    }
+    .modal-actions .btn-cancel {
+      background: #f4efe8;
+      color: #6d846d;
+    }
+    .modal-actions .btn-cancel:active {
+      background: #ede6dd;
+    }
+    .modal-actions .btn-save {
+      background: #8aa78a;
+      color: white;
+      box-shadow: 0 6px 20px rgba(138, 167, 138, 0.25);
+    }
+    .modal-actions .btn-save:active {
+      transform: scale(0.96);
+    }
+    .modal-actions .btn-save:disabled {
+      opacity: 0.4;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 440px) {
+      .app { padding: 20px 14px 24px; border-radius: 36px; }
+      .garden { gap: 10px; }
+      .plant-emoji { font-size: 36px; }
+      .plant-name { font-size: 10px; }
+      .mood-grid { gap: 10px; }
+      .mood-option .emoji { font-size: 28px; }
+      .action-row { flex-direction: column; gap: 10px; }
+      .header h1 { font-size: 22px; }
+    }
+
+    @media (min-width: 600px) {
+      .garden { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>Roar Rater</h1>
-        <p>100% On-Device AI Architecture</p>
-        
-        <button id="record-btn">🎤</button>
-        
-        <div class="progress-container" id="progress-container">
-            <div class="progress-bar" id="progress-bar"></div>
-        </div>
-        
-        <div id="status">Tap mic to load AI and record</div>
+<div class="app" id="app">
+  <!-- Header -->
+  <header class="header">
+    <h1>🌿 MoodGarden</h1>
+    <span class="date" id="todayDate"></span>
+  </header>
 
-        <div class="results" id="results-card">
-            <div class="score-box">
-                <div style="font-size: 0.9rem; color:#aaa; text-transform:uppercase; letter-spacing:1px;">Final Roar Score</div>
-                <div class="score-display" id="roar-score">0</div>
-                <div class="bonus-text" id="bonus-text">+0 Character Bonus</div>
-            </div>
-            
-            <div><span class="bike-badge" id="bike-class">Analyzing...</span></div>
-            <div class="trash-talk" id="trash-talk-text"></div>
-        </div>
+  <!-- Garden Grid -->
+  <div class="garden" id="gardenContainer"></div>
+
+  <!-- Action Row -->
+  <div class="action-row">
+    <button class="log-button" id="logButton"><span>+</span> Log mood</button>
+    <button class="voice-button" id="voiceButton">🎙️ Record</button>
+  </div>
+
+  <!-- Journal -->
+  <section class="journal-section">
+    <div class="journal-header">
+      <h3>📖 Garden Journal</h3>
+      <span class="count" id="entryCount">0 entries</span>
+    </div>
+    <div class="journal-list" id="journalList">
+      <div class="empty-journal">No entries yet — start logging your moods!</div>
+    </div>
+  </section>
+
+  <!-- Privacy Row -->
+  <div class="privacy-row">
+    <button id="clearDataBtn">🗑️ Clear all data</button>
+    <button id="privacyPolicyBtn">🔒 Privacy</button>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="moodModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalTitle">How are you feeling?</div>
+    <div class="modal-sub" id="modalSub">Choose a mood (or record your voice)</div>
+
+    <div class="voice-result" id="voiceResult" style="display:none;">
+      🎤 Detected: <strong id="detectedMoodLabel">—</strong>
+      <span style="font-weight:400; margin-left:8px; font-size:13px; color:#8f8a82;">(tap a mood to adjust)</span>
     </div>
 
-    <script>
-        // --- 1. CONFIGURATION ---
-        // REPLACE this URL with your own Teachable Machine Audio model link once you train it!
-        // Example: "https://teachablemachine.withgoogle.com/models/YOUR_MODEL_ID/"
-        const URL = "https://teachablemachine.withgoogle.com/models/placeholder/"; 
-        
-        const RECORD_DURATION_MS = 5000; // 5 seconds
-        
-        // Trash Talk Engine (Tamil-English)
-        const trashTalkTemplates = {
-            low: [
-                "Enna ba, mixer grinder sound kekuthu! 😂",
-                "TVS 50 ah idhu? Needs more throat! 🛵",
-                "Sathame illa... Cycle otlama ba? 🚲"
-            ],
-            medium: [
-                "Not bad, aana innum konjam raw power thevai! 🏍️",
-                "Decent ah irukku, but where is the bass man? 🤔",
-                "KTM Duke vibes, pulling out okay! 🔥"
-            ],
-            high: [
-                "Verithanam! Pure muscle! 💥",
-                "Therikkavidalama! That's a beast roaring! 🦁",
-                "Kaantha kural! Royal Enfield thozha! 👑"
-            ]
-        };
+    <div class="mood-grid" id="moodGrid"></div>
 
-        // UI Elements
-        const recordBtn = document.getElementById('record-btn');
-        const statusText = document.getElementById('status');
-        const resultsCard = document.getElementById('results-card');
-        const roarScoreEl = document.getElementById('roar-score');
-        const bikeClassEl = document.getElementById('bike-class');
-        const trashTalkEl = document.getElementById('trash-talk-text');
-        const bonusTextEl = document.getElementById('bonus-text');
-        const progressContainer = document.getElementById('progress-container');
-        const progressBar = document.getElementById('progress-bar');
+    <input class="note-input" id="noteInput" type="text" placeholder="Add a note (optional) …" maxlength="120" />
 
-        // State Variables
-        let isRecording = false;
-        let recognizer;
-        let audioContext;
-        let analyser;
-        let microphone;
-        let maxVolume = 0;
-        let detectedClass = "Unknown";
-        let maxConfidence = 0;
-        let progressInterval;
+    <div class="modal-actions">
+      <button class="btn-cancel" id="cancelModal">Cancel</button>
+      <button class="btn-save" id="saveMood" disabled>Water my garden</button>
+    </div>
+  </div>
+</div>
 
-        // --- 2. TFJS MODEL LOADING ---
-        async function createModel() {
-            const checkpointURL = URL + "model.json"; // model topology
-            const metadataURL = URL + "metadata.json"; // model metadata
+<script>
+  (function() {
+    'use strict';
 
-            try {
-                const recognizer = speechCommands.create(
-                    "BROWSER_FFT", // Fourier transform type
-                    undefined,     // speech commands vocabulary feature
-                    checkpointURL,
-                    metadataURL
-                );
-                // check that model and metadata are loaded
-                await recognizer.ensureModelLoaded();
-                return recognizer;
-            } catch (e) {
-                console.warn("Real TFJS model not found. Falling back to Mock Engine for UI testing.");
-                return null; // Return null to trigger the graceful fallback demo
-            }
+    // ---------- Configuration ----------
+    const MOODS = [
+      { id: 'joy',      emoji: '🌸', label: 'Joy',      color: '#fdf0e6' },
+      { id: 'calm',     emoji: '🌿', label: 'Calm',     color: '#e8f0e8' },
+      { id: 'sadness',  emoji: '🌧️', label: 'Sadness',  color: '#e6ecf2' },
+      { id: 'anger',    emoji: '🔥', label: 'Anger',    color: '#f5e8e6' },
+      { id: 'anxiety',  emoji: '🌀', label: 'Anxiety',  color: '#eeebf5' },
+      { id: 'excitement', emoji: '✨', label: 'Excitement', color: '#faf3e0' }
+    ];
+
+    const STAGES = [
+      { threshold: 0,  label: 'Seed',   emoji: '🌰' },
+      { threshold: 20, label: 'Sprout', emoji: '🌱' },
+      { threshold: 40, label: 'Young',  emoji: '🌿' },
+      { threshold: 60, label: 'Mature', emoji: '🌳' },
+      { threshold: 80, label: 'Bloom',  emoji: '🌸' }
+    ];
+
+    const POINTS_PER_LOG = 20;
+    const MAX_POINTS = 100;
+
+    // ---------- State ----------
+    let gardenData = {};
+    let journalEntries = [];
+    let selectedMoodId = null;
+    let voiceDetectedMoodId = null;
+
+    // ---------- DOM refs ----------
+    const gardenContainer = document.getElementById('gardenContainer');
+    const journalList = document.getElementById('journalList');
+    const entryCount = document.getElementById('entryCount');
+    const todayDate = document.getElementById('todayDate');
+    const logButton = document.getElementById('logButton');
+    const voiceButton = document.getElementById('voiceButton');
+    const modalOverlay = document.getElementById('moodModal');
+    const moodGrid = document.getElementById('moodGrid');
+    const noteInput = document.getElementById('noteInput');
+    const cancelModal = document.getElementById('cancelModal');
+    const saveMood = document.getElementById('saveMood');
+    const voiceResult = document.getElementById('voiceResult');
+    const detectedMoodLabel = document.getElementById('detectedMoodLabel');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalSub = document.getElementById('modalSub');
+    const clearDataBtn = document.getElementById('clearDataBtn');
+    const privacyPolicyBtn = document.getElementById('privacyPolicyBtn');
+
+    // ---------- Helpers ----------
+    function getMood(id) { return MOODS.find(m => m.id === id); }
+
+    function getStage(points) {
+      for (let i = STAGES.length - 1; i >= 0; i--) {
+        if (points >= STAGES[i].threshold) return STAGES[i];
+      }
+      return STAGES[0];
+    }
+
+    function getPlantEmoji(moodId, points) {
+      const mood = getMood(moodId);
+      if (!mood) return '🌱';
+      const stage = getStage(points);
+      if (stage.label === 'Bloom') return mood.emoji;
+      return stage.emoji;
+    }
+
+    function getStageLabel(points) { return getStage(points).label; }
+    function getProgress(points) { return Math.min(points / MAX_POINTS * 100, 100); }
+    function formatTime(ts) {
+      const d = new Date(ts);
+      return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+    function todayStr() {
+      const d = new Date();
+      return d.toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric' });
+    }
+
+    // ---------- Storage ----------
+    function loadData() {
+      try {
+        const raw = localStorage.getItem('moodgarden_data');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          gardenData = parsed.gardenData || {};
+          journalEntries = parsed.journalEntries || [];
+          MOODS.forEach(m => {
+            if (!gardenData[m.id]) gardenData[m.id] = { points: 0, lastLog: null };
+          });
+          return;
         }
+      } catch (e) { /* ignore */ }
+      gardenData = {};
+      MOODS.forEach(m => { gardenData[m.id] = { points: 0, lastLog: null }; });
+      journalEntries = [];
+    }
 
-        // --- 3. CORE LOGIC ---
-        recordBtn.addEventListener('click', async () => {
-            if (isRecording) return;
-            
-            resultsCard.style.display = 'none';
-            statusText.innerText = 'Loading TFJS Model into memory...';
-            
-            // Lazy load model on first click
-            if (!recognizer && recognizer !== null) {
-                recognizer = await createModel();
-            }
+    function saveData() {
+      localStorage.setItem('moodgarden_data', JSON.stringify({ gardenData, journalEntries }));
+    }
 
-            startPipeline();
+    function clearAllData() {
+      if (confirm('Delete all your mood data and journal entries? This cannot be undone.')) {
+        localStorage.removeItem('moodgarden_data');
+        loadData();
+        renderAll();
+      }
+    }
+
+    // ---------- Render ----------
+    function renderGarden() {
+      let html = '';
+      MOODS.forEach(mood => {
+        const data = gardenData[mood.id] || { points: 0 };
+        const points = data.points;
+        const emoji = getPlantEmoji(mood.id, points);
+        const progress = getProgress(points);
+        const stageLabel = getStageLabel(points);
+        const isBloom = stageLabel === 'Bloom';
+        html += `
+          <div class="plant-card" data-mood="${mood.id}">
+            <span class="plant-emoji ${isBloom ? 'bloom' : ''}">${emoji}</span>
+            <div class="plant-name">${mood.label}</div>
+            <div class="plant-stage">${stageLabel}</div>
+            <div class="plant-progress"><div class="plant-progress-bar" style="width:${progress}%"></div></div>
+          </div>
+        `;
+      });
+      gardenContainer.innerHTML = html;
+    }
+
+    function renderJournal() {
+      if (journalEntries.length === 0) {
+        journalList.innerHTML = `<div class="empty-journal">No entries yet — start logging your moods!</div>`;
+        entryCount.textContent = '0 entries';
+        return;
+      }
+      const entries = [...journalEntries].reverse().slice(0, 30);
+      let html = '';
+      entries.forEach(entry => {
+        const mood = getMood(entry.moodId);
+        if (!mood) return;
+        const note = entry.note || '';
+        html += `
+          <div class="journal-entry">
+            <span class="entry-emoji">${mood.emoji}</span>
+            <div class="entry-content">
+              <div class="entry-mood">${mood.label}</div>
+              ${note ? `<div class="entry-note">${note}</div>` : ''}
+            </div>
+            <span class="entry-time">${formatTime(entry.timestamp)}</span>
+          </div>
+        `;
+      });
+      journalList.innerHTML = html;
+      entryCount.textContent = `${journalEntries.length} entry${journalEntries.length !== 1 ? 's' : ''}`;
+    }
+
+    function renderAll() {
+      renderGarden();
+      renderJournal();
+      todayDate.textContent = todayStr();
+    }
+
+    // ---------- Modal ----------
+    function openModal(voiceSuggestedMoodId = null) {
+      selectedMoodId = null;
+      voiceDetectedMoodId = voiceSuggestedMoodId || null;
+      noteInput.value = '';
+      saveMood.disabled = true;
+
+      if (voiceDetectedMoodId) {
+        const mood = getMood(voiceDetectedMoodId);
+        if (mood) {
+          voiceResult.style.display = 'block';
+          detectedMoodLabel.textContent = `${mood.emoji} ${mood.label}`;
+          modalTitle.textContent = '🎤 Voice detected!';
+          modalSub.textContent = 'Confirm or choose a different mood.';
+        }
+      } else {
+        voiceResult.style.display = 'none';
+        modalTitle.textContent = 'How are you feeling?';
+        modalSub.textContent = 'Choose a mood (or record your voice)';
+      }
+
+      renderMoodOptions();
+      modalOverlay.classList.add('active');
+      setTimeout(() => noteInput.focus(), 300);
+    }
+
+    function closeModal() {
+      modalOverlay.classList.remove('active');
+      selectedMoodId = null;
+      voiceDetectedMoodId = null;
+      saveMood.disabled = true;
+      voiceResult.style.display = 'none';
+    }
+
+    function renderMoodOptions() {
+      let html = '';
+      MOODS.forEach(mood => {
+        const selected = (selectedMoodId === mood.id) ? 'selected' : '';
+        html += `
+          <div class="mood-option ${selected}" data-mood="${mood.id}">
+            <span class="emoji">${mood.emoji}</span>
+            <span class="label">${mood.label}</span>
+          </div>
+        `;
+      });
+      moodGrid.innerHTML = html;
+      document.querySelectorAll('.mood-option').forEach(el => {
+        el.addEventListener('click', function() {
+          const id = this.dataset.mood;
+          selectMood(id);
         });
+      });
+      if (voiceDetectedMoodId) {
+        selectMood(voiceDetectedMoodId);
+      }
+    }
 
-        async function startPipeline() {
-            try {
-                // Request raw microphone access for decibel calculation
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                setupDecibelTracker(stream);
+    function selectMood(id) {
+      selectedMoodId = id;
+      document.querySelectorAll('.mood-option').forEach(el => {
+        el.classList.toggle('selected', el.dataset.mood === id);
+      });
+      saveMood.disabled = false;
+    }
 
-                isRecording = true;
-                recordBtn.classList.add('recording');
-                progressContainer.style.display = 'block';
-                progressBar.style.width = '0%';
-                statusText.innerText = 'Listening... Rev the engine!';
+    function logMood() {
+      if (!selectedMoodId) return;
+      const moodId = selectedMoodId;
+      const note = noteInput.value.trim() || '';
 
-                // Start Progress Bar
-                let elapsed = 0;
-                progressInterval = setInterval(() => {
-                    elapsed += 100;
-                    progressBar.style.width = (elapsed / RECORD_DURATION_MS) * 100 + '%';
-                }, 100);
+      const data = gardenData[moodId];
+      if (data) {
+        data.points = Math.min(data.points + POINTS_PER_LOG, MAX_POINTS);
+        data.lastLog = Date.now();
+      }
 
-                // If real TFJS model loaded, start classifying in real time
-                if (recognizer) {
-                    const classLabels = recognizer.wordLabels(); 
-                    recognizer.listen(result => {
-                        // Find highest confidence class during this window
-                        let scores = result.scores;
-                        let highestIndex = scores.indexOf(Math.max(...scores));
-                        
-                        if (scores[highestIndex] > maxConfidence) {
-                            maxConfidence = scores[highestIndex];
-                            detectedClass = classLabels[highestIndex];
-                        }
-                    }, {
-                        includeSpectrogram: false,
-                        probabilityThreshold: 0.75,
-                        invokeCallbackOnNoiseAndUnknown: true,
-                        overlapFactor: 0.50
-                    });
-                }
+      journalEntries.push({
+        moodId: moodId,
+        note: note,
+        timestamp: Date.now()
+      });
 
-                // Stop after 5 seconds
-                setTimeout(() => {
-                    stopPipeline(stream);
-                }, RECORD_DURATION_MS);
+      saveData();
+      renderAll();
+      closeModal();
+    }
 
-            } catch (err) {
-                console.error(err);
-                statusText.innerText = "Error: Microphone permission denied.";
-            }
+    // ---------- Voice Recording ----------
+    let audioContext = null;
+    let analyser = null;
+    let mediaStream = null;
+    let isRecording = false;
+
+    function analyzePitchAndEnergy(frequency, energy) {
+      if (frequency < 120) {
+        if (energy < 0.05) return 'calm';
+        else return 'sadness';
+      } else if (frequency < 180) {
+        if (energy < 0.08) return 'calm';
+        else return 'anxiety';
+      } else if (frequency < 240) {
+        if (energy < 0.10) return 'joy';
+        else return 'excitement';
+      } else {
+        if (energy < 0.10) return 'joy';
+        else return 'anger';
+      }
+    }
+
+    function detectPitch(buffer, sampleRate) {
+      const minFreq = 80;
+      const maxFreq = 400;
+      const minLag = Math.floor(sampleRate / maxFreq);
+      const maxLag = Math.floor(sampleRate / minFreq);
+      let bestLag = minLag;
+      let bestCorr = 0;
+
+      for (let lag = minLag; lag <= maxLag; lag++) {
+        let corr = 0;
+        for (let i = 0; i < buffer.length - lag; i += 10) {
+          corr += buffer[i] * buffer[i + lag];
         }
-
-        function setupDecibelTracker(stream) {
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            analyser = audioContext.createAnalyser();
-            microphone = audioContext.createMediaStreamSource(stream);
-            microphone.connect(analyser);
-            analyser.fftSize = 256;
-            
-            const bufferLength = analyser.frequencyBinCount;
-            const dataArray = new Uint8Array(bufferLength);
-            maxVolume = 0;
-
-            function track() {
-                if (!isRecording) return;
-                analyser.getByteFrequencyData(dataArray);
-                let sum = 0;
-                for (let i = 0; i < bufferLength; i++) { sum += dataArray[i]; }
-                let avg = sum / bufferLength;
-                if (avg > maxVolume) maxVolume = avg; // Track peak volume
-                requestAnimationFrame(track);
-            }
-            track();
+        if (corr > bestCorr) {
+          bestCorr = corr;
+          bestLag = lag;
         }
+      }
+      if (bestCorr < 0.01) return null;
+      return sampleRate / bestLag;
+    }
 
-        function stopPipeline(stream) {
-            isRecording = false;
-            clearInterval(progressInterval);
-            recordBtn.classList.remove('recording');
-            progressContainer.style.display = 'none';
-            statusText.innerText = 'Processing completely on-device...';
+    function startRecording() {
+      if (isRecording) return;
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+          mediaStream = stream;
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          analyser = audioContext.createAnalyser();
+          analyser.fftSize = 2048;
+          const source = audioContext.createMediaStreamSource(stream);
+          source.connect(analyser);
 
-            // Clean up Audio Context
-            stream.getTracks().forEach(track => track.stop());
-            if (audioContext && audioContext.state !== 'closed') {
-                audioContext.close();
-            }
-            if (recognizer) {
-                recognizer.stopListening();
-            }
+          isRecording = true;
+          voiceButton.classList.add('recording');
+          voiceButton.textContent = '⏹️ Stop';
 
-            calculateAndShowResults();
+          setTimeout(() => {
+            stopRecordingAndAnalyze();
+          }, 3000);
+        })
+        .catch(err => {
+          alert('Microphone access denied. Please grant permission and try again.');
+          console.error(err);
+        });
+    }
+
+    function stopRecordingAndAnalyze() {
+      if (!isRecording) return;
+      isRecording = false;
+      voiceButton.classList.remove('recording');
+      voiceButton.textContent = '🎙️ Record';
+
+      const bufferLength = analyser.fftSize;
+      const dataArray = new Float32Array(bufferLength);
+      analyser.getFloatTimeDomainData(dataArray);
+
+      let sum = 0;
+      for (let i = 0; i < bufferLength; i++) {
+        sum += dataArray[i] * dataArray[i];
+      }
+      const rms = Math.sqrt(sum / bufferLength);
+      const energy = Math.min(rms * 10, 1.0);
+
+      const sampleRate = audioContext.sampleRate;
+      const pitch = detectPitch(dataArray, sampleRate);
+
+      let detectedMood = null;
+      if (pitch !== null && pitch > 50) {
+        detectedMood = analyzePitchAndEnergy(pitch, energy);
+      } else {
+        if (energy < 0.05) detectedMood = 'calm';
+        else if (energy < 0.15) detectedMood = 'sadness';
+        else if (energy < 0.30) detectedMood = 'joy';
+        else detectedMood = 'excitement';
+      }
+
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+      }
+      if (audioContext) {
+        audioContext.close();
+        audioContext = null;
+        analyser = null;
+      }
+
+      if (detectedMood) {
+        openModal(detectedMood);
+      } else {
+        alert('Could not detect a clear mood from your voice. Please log manually.');
+        openModal(null);
+      }
+    }
+
+    function cancelRecording() {
+      if (isRecording) {
+        isRecording = false;
+        voiceButton.classList.remove('recording');
+        voiceButton.textContent = '🎙️ Record';
+        if (mediaStream) {
+          mediaStream.getTracks().forEach(track => track.stop());
+          mediaStream = null;
         }
-
-        function calculateAndShowResults() {
-            // 1. Calculate Base Decibel Score (Mapping peak volume 0-255 to 0-85)
-            let baseScore = Math.min(85, Math.round((maxVolume / 255) * 85 * 1.5)); 
-            if (baseScore < 10) baseScore = Math.floor(Math.random() * 20) + 10; 
-
-            // 2. Handle AI Bike Classification & Character Bonus
-            let characterBonus = 0;
-
-            // If the user hasn't put in their real Teachable Machine URL yet, Mock the AI
-            if (!recognizer) {
-                if (baseScore > 75) { detectedClass = "Royal Enfield Classic 350"; maxConfidence = 0.92; }
-                else if (baseScore > 50) { detectedClass = "KTM Duke 390"; maxConfidence = 0.85; }
-                else { detectedClass = "TVS XL Super"; maxConfidence = 0.78; }
-            }
-
-            // Assign Bonus based on AI Output (The "Character" Bonus from your architecture)
-            if (detectedClass.includes("Royal Enfield")) characterBonus = 15;
-            else if (detectedClass.includes("KTM")) characterBonus = 10;
-            else if (detectedClass.includes("Yamaha")) characterBonus = 8;
-            else characterBonus = 2; // Commuter bikes get low bonus
-
-            // 3. Final Roar Score Calculation
-            let finalScore = Math.min(100, baseScore + characterBonus);
-
-            // 4. Update UI
-            roarScoreEl.innerText = finalScore;
-            bonusTextEl.innerText = `+${characterBonus} Character Bonus (${detectedClass})`;
-            bikeClassEl.innerText = `${detectedClass} (Confidence: ${Math.round(maxConfidence * 100)}%)`;
-            
-            // 5. Fire Trash Talk Engine
-            let category = 'low';
-            if (finalScore > 75) category = 'high';
-            else if (finalScore > 40) category = 'medium';
-
-            const phrases = trashTalkTemplates[category];
-            trashTalkEl.innerText = phrases[Math.floor(Math.random() * phrases.length)];
-
-            resultsCard.style.display = 'block';
-            statusText.innerText = 'Tap mic to test another bike!';
-            
-            // Reset state for next run
-            maxConfidence = 0;
-            detectedClass = "Unknown";
+        if (audioContext) {
+          audioContext.close();
+          audioContext = null;
+          analyser = null;
         }
-    </script>
+      }
+    }
+
+    // ---------- Privacy ----------
+    function showPrivacy() {
+      alert(
+        '🔒 Privacy Policy\n\n' +
+        'MoodGarden is built with utmost privacy in mind.\n\n' +
+        '• All data (mood logs, journal entries) is stored ONLY in your browser\'s local storage.\n' +
+        '• No data is ever sent to any server or third party.\n' +
+        '• Voice recording is processed entirely on your device – no audio leaves your computer/phone.\n' +
+        '• You can clear all data at any time using the "Clear all data" button.\n\n' +
+        'This app is open source and can be self-hosted.'
+      );
+    }
+
+    // ---------- Init ----------
+    function init() {
+      loadData();
+      renderAll();
+
+      logButton.addEventListener('click', () => openModal(null));
+
+      voiceButton.addEventListener('click', function() {
+        if (isRecording) {
+          cancelRecording();
+        } else {
+          startRecording();
+        }
+      });
+
+      cancelModal.addEventListener('click', closeModal);
+      modalOverlay.addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+      });
+      saveMood.addEventListener('click', logMood);
+      noteInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !saveMood.disabled) {
+          e.preventDefault();
+          logMood();
+        }
+      });
+      noteInput.addEventListener('input', function() {
+        if (selectedMoodId) saveMood.disabled = false;
+      });
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modalOverlay.classList.contains('active')) {
+          closeModal();
+        }
+      });
+
+      clearDataBtn.addEventListener('click', clearAllData);
+      privacyPolicyBtn.addEventListener('click', showPrivacy);
+
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js')
+          .then(() => console.log('Service Worker registered'))
+          .catch(err => console.warn('SW registration failed:', err));
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+
+  })();
+</script>
 </body>
 </html>
